@@ -1,19 +1,11 @@
-FROM node:18-alpine
+FROM node:18-alpine3.18
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY package*.json /app/
 
-RUN npm cache clean --force && \
-    npm install --fetch-timeout=60000
+RUN npm install
+ 
+COPY . /app/
 
-
-COPY . .
-# COPY .env ./
-
-RUN npm run build
-
-RUN ls -alh dist
-
-CMD ["npx", "serve", "-s", "dist", "-l", "3000"]
-
+CMD npm run dev -- --host 0.0.0.0
