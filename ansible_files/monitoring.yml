@@ -1,0 +1,92 @@
+- hosts: web_servers
+  become: true
+  tasks:
+    - name: Pull Docker Images
+      docker_image:
+        name: "{{ item }}"
+        source: pull
+      loop:
+        - ujusophy/prometheus:latest
+        - ujusophy/grafana:latest
+        - ujusophy/loki:2.8.2
+        - ujusophy/promtail:2.8.2
+        - ujusophy/cadvisor:latest
+
+    - name: Get the public IP of the server
+      command: curl -s https://api.ipify.org
+      register: public_ip
+
+    - name: Set Grafana root URL dynamically
+      set_fact:
+        grafana_root_url: "http://{{ public_ip.stdout }}/grafana"
+
+    - name: Copy Docker Compose File
+      copy:
+        content: |
+          version: '3.8'
+          services:
+            prometheus:
+              image: ujusophy/prometheus:latest
+              container_name: prometheus
+              volumes:
+                - ./prometheus.yml:/etc/prometheus/prometheus.yml
+              ports:
+                - "9090:9090"
+              command:
+                - "--config.file=/etc/prometheus/prometheus.yml"
+                - "--web.external-url=/prometheus"
+              networks:
+                - monitoring-network
+              restart: unless-stopped
+
+            grafana:
+              image: ujusophy/grafana:latest
+              container_name: grafana
+              ports:
+                - "3000:3000"
+              environment:
+                - GF_SERVER_ROOT_URL={{ grafana_root_url }}
+                - GF_SERVER_SERVE_FROM_SUB_PATH=true
+              networks:
+                - monitoring-network
+              restart: unless-stopped
+
+            loki:
+              image: ujusophy/loki:2.8.2
+              container_name: loki
+              ports:
+                - "3100:3100"
+              volumes:
+                - ./loki-config.yaml:/etc/loki/loki-config.yaml
+              networks:
+                - monitoring-network
+              restart: unless-stopped
+
+            promtail:
+              image: ujusophy/promtail:2.8.2
+              container_name: promtail
+              volumes:
+                - /var/log:/var/log
+              networks:
+                - monitoring-network
+              restart: unless-stopped
+
+            cadvisor:
+              image: ujusophy/cadvisor:latest
+              container_name: cadvisor
+              ports:
+                - "8081:8080"
+              volumes:
+                - "/:/rootfs:ro"
+                - "/var/run:/var/run:ro"
+                - "/sys:/sys:ro"
+                - "/var/lib/docker/:/var/lib/docker:ro"
+                - "/dev/disk/:/dev/disk:ro"
+              networks:
+                - monitoring-network
+              restart: unless-stopped
+
+          networks:
+            monitoring-network:
+              driver: bridge
+        dest: ./docker-compose.yml

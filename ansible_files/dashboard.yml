@@ -1,0 +1,160 @@
+---
+- hosts: web_servers
+  become: true
+  tasks:
+
+    - name: Get the public IP of the server
+      command: curl -s https://api.ipify.org
+      register: public_ip
+
+    - name: Set Grafana root URL dynamically
+      set_fact:
+        grafana_root_url: "http://{{ public_ip.stdout }}/grafana"
+
+    - name: Obtain Grafana Admin Token
+      uri:
+        url: "http://{{ public_ip.stdout }}/grafana/login"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+        body: |
+          {
+            "user": "admin",
+            "password": "admin"
+          }
+        body_format: json
+        return_content: yes
+      register: grafana_login_response
+
+    - name: Debug Grafana Login Response
+      debug:
+        var: grafana_login_response
+
+    - name: Set the Grafana Session Cookie as a Fact
+      set_fact:
+        grafana_session_cookie: "{{ grafana_login_response.cookies.grafana_session }}"
+
+    - name: Configure Prometheus Data Sources
+      uri:
+        url: "http://{{ public_ip.stdout }}/grafana/api/datasources"
+        method: POST
+        headers:
+          Cookie: "grafana_session={{ grafana_session_cookie }}"
+        body: |
+          {
+            "name": "Prometheus",
+            "type": "prometheus",
+            "url": "http://prometheus:9090/prometheus",
+            "access": "proxy",
+            "isDefault": true
+          }
+        body_format: json
+        status_code: 200
+
+    - name: Configure Loki Data Source
+      uri:
+        url: "http://{{ public_ip.stdout }}/grafana/api/datasources"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+          Cookie: "grafana_session={{ grafana_session_cookie }}"
+        body: |
+          {
+            "name": "Loki",
+            "type": "loki",
+            "url": "http://loki:3100",
+            "access": "proxy"
+          }
+        body_format: json
+        status_code: 200
+
+    - name: Import cAdvisor Panel with UID 193
+      uri:
+        url: "https://grafana.com/api/dashboards/193/revisions/1/download"
+        method: GET
+        headers:
+          Content-Type: "application/json"
+          Cookie: "grafana_session={{ grafana_session_cookie }}"
+      register: cadvisor_panel
+
+    - name: Add cAdvisor Panel to Dashboard
+      uri:
+        url: "http://{{ public_ip.stdout }}/grafana/api/dashboards/db"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+          Cookie: "grafana_session={{ grafana_session_cookie }}"
+        body: |
+          {
+            "dashboard": {{ cadvisor_panel.json }},
+            "folder": "Monitoring",
+            "refresh": "10s",
+            "timepicker": {
+              "refresh_intervals": ["5s", "10s", "30s", "1m"]
+            },
+          }
+        body_format: json
+        status_code: 200
+
+    - name: Create New Dashboard and Add Visualization Panel for Loki
+      uri:
+        url: "http://{{ public_ip.stdout }}/grafana/api/dashboards/db"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+          Cookie: "grafana_session={{ grafana_session_cookie }}"
+        body: |
+          {
+            "dashboard": {
+              "id": null,
+              "title": "Logging",
+              "tags": ["Loki", "Prometheus"],
+              "timezone": "browser",
+              "panels": [
+                {
+                  "type": "timeseries",
+                  "title": "Loki Logs",
+                  "targets": [
+                    {
+                      "expr": "container_network_receive_errors_total{}",
+                      "refId": "A",
+                      "datasource": {
+                        "type": "loki",
+                        "uid": "loki"
+                      },
+                      "intervalFactor": 1
+                    }
+                  ],
+                  "xaxis": {
+                    "mode": "time"
+                  },
+                  "yaxis": {
+                    "format": "short"
+                  },
+                  "legend": {
+                    "show": false
+                  },
+                  "lines": true,
+                  "linewidth": 2,
+                  "nullPointMode": "connected",
+                  "stack": false,
+                  "percentage": false
+                }
+              ],
+              "refresh": "30s"
+            },
+            "folder": "Monitoring"
+          }
+        body_format: json
+        status_code: 200
+
+    - name: Restart Docker Compose Stack
+      command: docker compose restart
+      args:
+        chdir: ./
+
+    - name: Ensure Grafana is running
+      docker_container:
+        name: grafana
+        state: started
+        restart_policy: unless-stopped
