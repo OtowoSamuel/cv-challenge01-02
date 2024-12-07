@@ -6,11 +6,11 @@
         name: "{{ item }}"
         source: pull
       loop:
-        - ujusophy/prometheus:latest
-        - ujusophy/grafana:latest
-        - ujusophy/loki:2.8.2
-        - ujusophy/promtail:2.8.2
-        - ujusophy/cadvisor:latest
+        -otowosamuel/prometheus:latest
+        -otowosamuel/grafana:latest
+        -otowosamuel/loki:2.8.2
+        -otowosamuel/promtail:2.8.2
+        -otowosamuel/cadvisor:latest
 
     - name: Get the public IP of the server
       command: curl -s https://api.ipify.org
@@ -26,7 +26,7 @@
           version: '3.8'
           services:
             prometheus:
-              image: ujusophy/prometheus:latest
+              image:otowosamuel/prometheus:latest
               container_name: prometheus
               volumes:
                 - ./prometheus.yml:/etc/prometheus/prometheus.yml
@@ -40,7 +40,7 @@
               restart: unless-stopped
 
             grafana:
-              image: ujusophy/grafana:latest
+              image:otowosamuel/grafana:latest
               container_name: grafana
               ports:
                 - "3000:3000"
@@ -52,7 +52,7 @@
               restart: unless-stopped
 
             loki:
-              image: ujusophy/loki:2.8.2
+              image:otowosamuel/loki:2.8.2
               container_name: loki
               ports:
                 - "3100:3100"
@@ -63,7 +63,7 @@
               restart: unless-stopped
 
             promtail:
-              image: ujusophy/promtail:2.8.2
+              image:otowosamuel/promtail:2.8.2
               container_name: promtail
               volumes:
                 - /var/log:/var/log
@@ -72,7 +72,7 @@
               restart: unless-stopped
 
             cadvisor:
-              image: ujusophy/cadvisor:latest
+              image:otowosamuel/cadvisor:latest
               container_name: cadvisor
               ports:
                 - "8081:8080"
