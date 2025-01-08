@@ -86,7 +86,7 @@ resource "google_compute_instance" "web_server" {
   }
 
   provisioner "file" {
-    source      = "/mnt/c/Users/hp/Documents/cv-challenge01/ansible_files/monitoring.yml"
+    source      = "/mnt/c/Users/hp/Documents/cv-challenge01-02/ansible_files/monitoring.yml"
     destination = "/tmp/monitoring.yml"
     connection {
       type        = "ssh"
@@ -97,7 +97,7 @@ resource "google_compute_instance" "web_server" {
   }
 
   provisioner "file" {
-    source      = "/mnt/c/Users/hp/Documents/cv-challenge01/ansible_files/service.yml"
+    source      = "/mnt/c/Users/hp/Documents/cv-challenge01-02/ansible_files/service.yml"
     destination = "/tmp/service.yml"
     connection {
       type        = "ssh"
@@ -108,10 +108,10 @@ resource "google_compute_instance" "web_server" {
   }
 
   provisioner "file" {
-    source      = "/mnt/c/Users/hp/Documents/cv-challenge01/ansible_files/config.yml"
+    source      = "/mnt/c/Users/hp/Documents/cv-challenge01-02/ansible_files/config.yml"
     destination = "/tmp/network.yml"
     connection {
-      type        = "ssh"
+      type        = "ssh"    
       user        = "ubuntu"
       private_key = tls_private_key.web_server_key.private_key_pem
       host        = self.network_interface[0].access_config[0].nat_ip
@@ -119,7 +119,7 @@ resource "google_compute_instance" "web_server" {
   }
 
   provisioner "file" {
-    source      = "/mnt/c/Users/hp/Documents/cv-challenge01/ansible_files/dashboard.yml"
+    source      = "/mnt/c/Users/hp/Documents/cv-challenge01-02/ansible_files/dashboard.yml"
     destination = "/tmp/network.yml"
     connection {
       type        = "ssh"
