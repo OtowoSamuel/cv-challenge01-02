@@ -14,9 +14,9 @@ jobs:
 
       - name: Set up Google Cloud auth
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/account.json  
         run: |
-          echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" > /tmp/account.json
+          echo '${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}' > /tmp/account.json
           gcloud auth activate-service-account --key-file=/tmp/account.json
 
       - name: Set up Terraform
