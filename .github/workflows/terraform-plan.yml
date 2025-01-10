@@ -29,7 +29,7 @@ jobs:
         run: terraform plan -out=tfplan
 
       - name: InfraCost
-        uses: infracost/infracost-gh-action@v2
+        uses: infracost/infracost-gh-action@v1
         with:
           path: .
           plan: tfplan
