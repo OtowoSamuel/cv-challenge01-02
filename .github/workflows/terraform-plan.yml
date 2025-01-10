@@ -12,6 +12,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Set up Google Cloud auth
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+        run: |
+          echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" > /tmp/account.json
+          gcloud auth activate-service-account --key-file=/tmp/account.json
+
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
 
@@ -19,9 +26,14 @@ jobs:
         run: terraform init
 
       - name: Terraform Plan
-        run: terraform plan
+        run: terraform plan -out=tfplan
 
       - name: InfraCost
-        uses: infracost/infracost-action@v1
+        uses: infracost/infracost-gh-action@v2
         with:
-          path: infracost.json
+          path: .
+          plan: tfplan
+          post_condition: always()
+
+      - name: Cleanup
+        run: rm -f /tmp/account.json
