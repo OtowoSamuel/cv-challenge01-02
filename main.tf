@@ -1,4 +1,5 @@
 provider "google" {
+  credentials = file("/tmp/account.json")
   project = "project-2-443816"
   region  = "us-east1"
   zone    = "us-east1-b"
