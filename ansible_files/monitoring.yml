@@ -5,12 +5,15 @@
       docker_image:
         name: "{{ item }}"
         source: pull
+        timeout: 600  # Timeout after 600 seconds (10 minutes)
       loop:
-        -otowosamuel/prometheus:latest
-        -otowosamuel/grafana:latest
-        -otowosamuel/loki:2.8.2
-        -otowosamuel/promtail:2.8.2
-        -otowosamuel/cadvisor:latest
+        - otowosamuel/prometheus:latest
+        - otowosamuel/grafana:latest
+        - otowosamuel/loki:2.8.2
+        - otowosamuel/promtail:2.8.2
+        - otowosamuel/cadvisor:latest
+      async: 300  # Run asynchronously with a max wait of 5 minutes for the task
+      poll: 0  # Don't wait for the task to complete, let it run in the background
 
     - name: Get the public IP of the server
       command: curl -s https://api.ipify.org
@@ -26,7 +29,7 @@
           version: '3.8'
           services:
             prometheus:
-              image:otowosamuel/prometheus:latest
+              image: otowosamuel/prometheus:latest
               container_name: prometheus
               volumes:
                 - ./prometheus.yml:/etc/prometheus/prometheus.yml
@@ -40,7 +43,7 @@
               restart: unless-stopped
 
             grafana:
-              image:otowosamuel/grafana:latest
+              image: otowosamuel/grafana:latest
               container_name: grafana
               ports:
                 - "3000:3000"
@@ -52,7 +55,7 @@
               restart: unless-stopped
 
             loki:
-              image:otowosamuel/loki:2.8.2
+              image: otowosamuel/loki:2.8.2
               container_name: loki
               ports:
                 - "3100:3100"
@@ -63,7 +66,7 @@
               restart: unless-stopped
 
             promtail:
-              image:otowosamuel/promtail:2.8.2
+              image: otowosamuel/promtail:2.8.2
               container_name: promtail
               volumes:
                 - /var/log:/var/log
@@ -72,7 +75,7 @@
               restart: unless-stopped
 
             cadvisor:
-              image:otowosamuel/cadvisor:latest
+              image: otowosamuel/cadvisor:latest
               container_name: cadvisor
               ports:
                 - "8081:8080"
