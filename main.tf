@@ -1,3 +1,10 @@
+terraform {
+  backend "gcs" {
+    bucket  = "otowotf-state-infra"
+    prefix  = "terraform/state"
+  }
+}
+
 provider "google" {
   credentials = file("/tmp/account.json")
   project = "project-2-443816"
@@ -32,14 +39,14 @@ resource "google_compute_firewall" "web_server_sg" {
 
 resource "google_compute_disk" "additional_disk" {
   name  = "my-disk"
-  size  = 20
-  type  = "pd-standard"
+  size  = 50
+  type  = "pd-ssd"
   zone  = "us-east1-b"
 }
 
 resource "google_compute_instance" "web_server" {
   name         = "web-server"
-  machine_type = "e2-medium"
+  machine_type = "n2-standard-4"
   zone         = "us-east1-b"
   
   boot_disk {
