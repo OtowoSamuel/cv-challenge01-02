@@ -25,6 +25,11 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
+      - name: Import Existing Resources
+        run: |
+          terraform import google_compute_network.main projects/project-2-443816/global/networks/main-vpc || echo "Network already imported"
+          terraform import google_compute_disk.additional_disk projects/project-2-443816/zones/us-east1-b/disks/my-disk || echo "Disk already imported"
+
       - name: Terraform Plan
         run: terraform plan
 
