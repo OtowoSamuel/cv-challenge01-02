@@ -71,6 +71,7 @@ resource "google_compute_instance" "web_server" {
     device_name = "my-disk"
   }
 
+
   provisioner "file" {
     source      = "ansible_files/monitoring.yml"
     destination = "/tmp/monitoring.yml"
