@@ -1,7 +1,7 @@
 terraform {
   backend "gcs" {
-    bucket  = "otowotf-state-infra"
-    prefix  = "terraform/state"
+    bucket  = "otowotf-state-infra"   
+    prefix  = "terraform/state"        
   }
 }
 
