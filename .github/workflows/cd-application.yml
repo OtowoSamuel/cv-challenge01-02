@@ -10,7 +10,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      - name: Run Docker Compose
+
+      - name: Set up SSH
         run: |
-          docker compose pull
-          docker compose up -d
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.VM_PUBLIC_IP }} >> ~/.ssh/known_hosts
+
+      - name: Deploy Application Stack via SSH
+        run: |
+          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.VM_PUBLIC_IP }} "docker compose pull && docker compose up -d"
