@@ -1,16 +1,16 @@
 terraform {
   backend "gcs" {
-    bucket  = "otowotf-state-infra"   
-    prefix  = "terraform/state"
-    credentials = "/tmp/account.json"        
+    bucket      = "otowotf-state-infra"
+    prefix      = "terraform/state"
+    credentials = "/tmp/account.json"
   }
 }
 
 provider "google" {
   credentials = file("/tmp/account.json")
-  project = "project-2-443816"
-  region  = "us-east1"
-  zone    = "us-east1-b"
+  project     = "project-2-443816"
+  region      = "us-east1"
+  zone        = "us-east1-b"
 }
 
 resource "google_compute_network" "main" {
@@ -52,7 +52,7 @@ resource "google_compute_instance" "web_server" {
   
   boot_disk {
     initialize_params {
-      image = "projects/ubuntu-os-cloud/global/images/family/ubuntu-2004-lts"
+      image = "projects/project-2-443816/global/images/ubuntu-ansible-docker"
     }
   }
 
@@ -69,29 +69,6 @@ resource "google_compute_instance" "web_server" {
   attached_disk {
     source      = google_compute_disk.additional_disk.id
     device_name = "my-disk"
-  }
-
-  provisioner "remote-exec" {
-    connection {
-      type        = "ssh"
-      user        = "ubuntu"
-      private_key = tls_private_key.web_server_key.private_key_pem
-      host        = self.network_interface[0].access_config[0].nat_ip
-    }
-
-    inline = [
-      "sudo apt-get update",
-      "sudo apt-get install -y ca-certificates curl",
-      "sudo install -m 0755 -d /etc/apt/keyrings",
-      "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo tee /etc/apt/keyrings/docker.asc > /dev/null",
-      "sudo chmod a+r /etc/apt/keyrings/docker.asc",
-      "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
-      "sudo apt-get update -y",
-      "sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin",
-      "sudo add-apt-repository ppa:ansible/ansible -y",
-      "sudo apt update",
-      "sudo apt install ansible -y"
-    ]
   }
 
   provisioner "file" {
@@ -120,7 +97,7 @@ resource "google_compute_instance" "web_server" {
     source      = "ansible_files/config.yml"
     destination = "/tmp/network.yml"
     connection {
-      type        = "ssh"    
+      type        = "ssh"
       user        = "ubuntu"
       private_key = tls_private_key.web_server_key.private_key_pem
       host        = self.network_interface[0].access_config[0].nat_ip
@@ -129,7 +106,7 @@ resource "google_compute_instance" "web_server" {
 
   provisioner "file" {
     source      = "ansible_files/dashboard.yml"
-    destination = "/tmp/network.yml"
+    destination = "/tmp/dashboard.yml"
     connection {
       type        = "ssh"
       user        = "ubuntu"
