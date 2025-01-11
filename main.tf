@@ -1,7 +1,8 @@
 terraform {
   backend "gcs" {
     bucket  = "otowotf-state-infra"   
-    prefix  = "terraform/state"        
+    prefix  = "terraform/state"
+    credentials = "/tmp/account.json"        
   }
 }
 
