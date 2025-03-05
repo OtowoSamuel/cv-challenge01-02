@@ -155,6 +155,10 @@ resource "aws_instance" "web_server" {
   key_name               = aws_key_pair.web_server_key.key_name
   associate_public_ip_address = true
 
+  timeouts {
+    create = "10m"
+  }
+
   tags = {
     Name = "web_server"
   }
