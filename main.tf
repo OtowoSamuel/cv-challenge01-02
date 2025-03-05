@@ -1,65 +1,162 @@
-provider "google" {
-  project = "project-2-443816"
-  region  = "us-east1"
-  zone    = "us-east1-b"
+provider "aws" {
+  region = "us-east-1"
 }
 
-resource "google_compute_network" "main" {
-  name                    = "main-vpc"
-  auto_create_subnetworks  = false
+resource "aws_vpc" "main" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+  tags = {
+    Name = "MainVPC"
+  }
 }
 
-resource "google_compute_subnetwork" "main" {
-  name                       = "main-subnet"
-  region                     = "us-east1"
-  network                    = google_compute_network.main.id
-  ip_cidr_range              = "10.0.1.0/24"
-  private_ip_google_access   = true
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id
+  tags = {
+    Name = "MainInternetGateway"
+  }
 }
 
-resource "google_compute_firewall" "web_server_sg" {
-  name    = "web-server-sg"
-  network = google_compute_network.main.id
+resource "aws_route_table" "main" {
+  vpc_id = aws_vpc.main.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
+  }
+  tags = {
+    Name = "MainRouteTable"
+  }
+}
 
-  allow {
-    protocol = "tcp"
-    ports    = ["22", "80", "8090", "9090", "3000", "3100", "8081", "5173", "5432", "8080", "8000"]
+resource "aws_route_table_association" "main" {
+  subnet_id      = aws_subnet.main.id
+  route_table_id = aws_route_table.main.id
+}
+
+resource "aws_subnet" "main" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "us-east-1a"
+  map_public_ip_on_launch = true
+  tags = {
+    Name = "MainSubnet"
+  }
+}
+
+resource "aws_security_group" "web_server_sg" {
+  vpc_id = aws_vpc.main.id
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  source_ranges = ["0.0.0.0/0"]
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 8090
+    to_port     = 8090
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 9090
+    to_port     = 9090
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 3100
+    to_port     = 3100
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 8081
+    to_port     = 8081
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 5173
+    to_port     = 5173
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 8000
+    to_port     = 8000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "web_server_sg"
+  }
 }
 
-resource "google_compute_disk" "additional_disk" {
-  name  = "my-disk"
-  size  = 20
-  type  = "pd-standard"
-  zone  = "us-east1-b"
+
+resource "tls_private_key" "web_server_key" {
+  algorithm = "RSA"
+  rsa_bits  = 2048
 }
 
-resource "google_compute_instance" "web_server" {
-  name         = "web-server"
-  machine_type = "e2-medium"
-  zone         = "us-east1-b"
-  
-  boot_disk {
-    initialize_params {
-      image = "projects/ubuntu-os-cloud/global/images/family/ubuntu-2004-lts"
-    }
-  }
+resource "aws_key_pair" "web_server_key" {
+  key_name   = "otowok"
+  public_key = tls_private_key.web_server_key.public_key_openssh
+}
 
-  network_interface {
-    network    = google_compute_network.main.id
-    subnetwork = google_compute_subnetwork.main.id
-    access_config {}
-  }
+resource "aws_instance" "web_server" {
+  ami                    = "ami-0866a3c8686eaeeba" 
+  instance_type          = "t2.medium"
+  subnet_id              = aws_subnet.main.id
+  vpc_security_group_ids = [aws_security_group.web_server_sg.id]
+  key_name               = aws_key_pair.web_server_key.key_name
+  associate_public_ip_address = true
 
-  metadata = {
-    ssh-keys = "ubuntu:${tls_private_key.web_server_key.public_key_openssh}"
-  }
-
-  attached_disk {
-    source      = google_compute_disk.additional_disk.id
-    device_name = "my-disk"
+  tags = {
+    Name = "web_server"
   }
 
   provisioner "remote-exec" {
@@ -67,7 +164,7 @@ resource "google_compute_instance" "web_server" {
       type        = "ssh"
       user        = "ubuntu"
       private_key = tls_private_key.web_server_key.private_key_pem
-      host        = self.network_interface[0].access_config[0].nat_ip
+      host        = self.public_ip
     }
 
     inline = [
@@ -85,61 +182,61 @@ resource "google_compute_instance" "web_server" {
     ]
   }
 
-  provisioner "file" {
-    source      = "/mnt/c/Users/hp/Documents/cv-challenge01-02/ansible_files/monitoring.yml"
-    destination = "/tmp/monitoring.yml"
-    connection {
-      type        = "ssh"
-      user        = "ubuntu"
-      private_key = tls_private_key.web_server_key.private_key_pem
-      host        = self.network_interface[0].access_config[0].nat_ip
-    }
+provisioner "file" {
+  source      = "ansible_files/monitoring.yml"
+  destination = "/tmp/monitoring.yml"
+  connection {
+    type        = "ssh"
+    user        = "ubuntu"
+    private_key = tls_private_key.web_server_key.private_key_pem
+    host        = self.public_ip
   }
+}
 
-  provisioner "file" {
-    source      = "/mnt/c/Users/hp/Documents/cv-challenge01-02/ansible_files/service.yml"
-    destination = "/tmp/service.yml"
-    connection {
-      type        = "ssh"
-      user        = "ubuntu"
-      private_key = tls_private_key.web_server_key.private_key_pem
-      host        = self.network_interface[0].access_config[0].nat_ip
-    }
+provisioner "file" {
+  source      = "ansible_files/service.yml"
+  destination = "/tmp/service.yml"
+  connection {
+    type        = "ssh"
+    user        = "ubuntu"
+    private_key = tls_private_key.web_server_key.private_key_pem
+    host        = self.public_ip
   }
+}
 
-  provisioner "file" {
-    source      = "/mnt/c/Users/hp/Documents/cv-challenge01-02/ansible_files/config.yml"
-    destination = "/tmp/network.yml"
-    connection {
-      type        = "ssh"    
-      user        = "ubuntu"
-      private_key = tls_private_key.web_server_key.private_key_pem
-      host        = self.network_interface[0].access_config[0].nat_ip
-    }
+provisioner "file" {
+  source      = "ansible_files/config.yml"
+  destination = "/tmp/network.yml"
+  connection {
+    type        = "ssh"
+    user        = "ubuntu"
+    private_key = tls_private_key.web_server_key.private_key_pem
+    host        = self.public_ip
   }
+}
 
-  provisioner "file" {
-    source      = "/mnt/c/Users/hp/Documents/cv-challenge01-02/ansible_files/dashboard.yml"
-    destination = "/tmp/network.yml"
-    connection {
-      type        = "ssh"
-      user        = "ubuntu"
-      private_key = tls_private_key.web_server_key.private_key_pem
-      host        = self.network_interface[0].access_config[0].nat_ip
-    }
+provisioner "file" {
+  source      = "ansible_files/dashboard.yml"
+  destination = "/tmp/dashboard.yml"
+  connection {
+    type        = "ssh"
+    user        = "ubuntu"
+    private_key = tls_private_key.web_server_key.private_key_pem
+    host        = self.public_ip
   }
+}
 
   provisioner "remote-exec" {
     connection {
       type        = "ssh"
       user        = "ubuntu"
       private_key = tls_private_key.web_server_key.private_key_pem
-      host        = self.network_interface[0].access_config[0].nat_ip
+      host        = self.public_ip
     }
 
     inline = [
       "echo \"[web_servers]\" > /tmp/inventory.ini",
-      "echo \"${self.network_interface[0].access_config[0].nat_ip} ansible_ssh_user=ubuntu ansible_ssh_private_key_file='/tmp/private_key.pem'\" >> /tmp/inventory.ini",
+      "echo \"${self.public_ip} ansible_ssh_user=ubuntu ansible_ssh_private_key_file='/tmp/private_key.pem'\" >> /tmp/inventory.ini",
       "echo '${tls_private_key.web_server_key.private_key_pem}' > /tmp/private_key.pem",
       "chmod 600 /tmp/private_key.pem",
       "ansible-playbook -i /tmp/inventory.ini /tmp/config.yml -vvv",
@@ -149,13 +246,15 @@ resource "google_compute_instance" "web_server" {
     ]
   }
 
-  depends_on = [
-    google_compute_firewall.web_server_sg,
-    google_compute_subnetwork.main
-  ]
-}
 
-resource "tls_private_key" "web_server_key" {
-  algorithm = "RSA"
-  rsa_bits  = 2048
+  ebs_block_device {
+    device_name = "/dev/sdh"
+    volume_size = 20
+    volume_type = "gp2"
+  }
+
+  depends_on = [
+    aws_security_group.web_server_sg,
+    aws_subnet.main
+  ]
 }
