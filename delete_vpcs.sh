@@ -44,4 +44,6 @@ for VPC_ID in $VPC_IDS; do
   echo "Deleted VPC: $VPC_ID"
 done
 
+#Delete Key Pair
+  aws ec2 delete-key-pair --key-name otowok
 echo "All VPCs and dependencies deleted successfully!"
