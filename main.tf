@@ -149,7 +149,7 @@ resource "aws_key_pair" "web_server_key" {
 
 resource "aws_instance" "web_server" {
   ami                    = "ami-029fb5f3f8aa2663c" 
-  instance_type          = "t2.medium"
+  instance_type          = "t3.medium"
   subnet_id              = aws_subnet.main.id
   vpc_security_group_ids = [aws_security_group.web_server_sg.id]
   key_name               = aws_key_pair.web_server_key.key_name
