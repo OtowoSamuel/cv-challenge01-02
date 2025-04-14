@@ -210,7 +210,7 @@ provisioner "file" {
 
 provisioner "file" {
   source      = "ansible_files/config.yml"
-  destination = "/tmp/network.yml"
+  destination = "/tmp/config.yml"
   connection {
     type        = "ssh"
     user        = "ubuntu"
@@ -245,8 +245,8 @@ provisioner "file" {
       "chmod 600 /tmp/private_key.pem",
       "ansible-playbook -i /tmp/inventory.ini /tmp/config.yml -vvv",
       "ansible-playbook -i /tmp/inventory.ini /tmp/monitoring.yml -vvv",
-      "ansible-playbook -i /tmp/inventory.ini /tmp/service.yml -vvv",
-      "ansible-playbook -i /tmp/inventory.ini /tmp/dashboard.yml -vvv"
+      "ansible-playbook -i /tmp/inventory.ini /tmp/dashboard.yml -vvv",
+      "ansible-playbook -i /tmp/inventory.ini /tmp/service.yml -vvv"
     ]
   }
 
